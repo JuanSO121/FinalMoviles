@@ -1,21 +1,33 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>heroes</ion-title>
+    <ion-title>Heroes</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <!-- Header for iOS style when scrolling -->
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">heroes</ion-title>
+      <ion-title size="large">Heroes</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <app-heroes-list
-  [heroes]="heroes" 
-  [titulo]="'Heroes'" 
-  [subtitulo]="'Generales'"
-  (heroeBorrado)="recargarHeroes($event)"
-  ></app-heroes-list>
+  <!-- Pull to refresh functionality -->
+  <ion-refresher slot="fixed" (ionRefresh)="recargarHeroes($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Desliza para actualizar"
+      refreshingSpinner="circles"
+      refreshingText="Actualizando...">
+    </ion-refresher-content>
+  </ion-refresher>
 
+  <!-- Heroes List Component -->
+  <app-heroes-list
+    [heroes]="heroes" 
+    [titulo]="'Heroes'" 
+    [subtitulo]="'Galería de Superhéroes'"
+    (heroeBorrado)="recargarHeroes($event)"
+    (heroeActualizado)="loadHeroes()"
+  ></app-heroes-list>
 </ion-content>
