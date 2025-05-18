@@ -91,7 +91,14 @@ export class HeroesBDService {
     }
   }
 
-  
+  login(user: any, pass: any){
+    let url = `${URL_HEROES}/auth/login`
+    const body = {
+        correo:user,
+        password: pass
+      };
+    return  this.http.post(url, body).pipe(map((data) => data))
+  }
 
 
 }

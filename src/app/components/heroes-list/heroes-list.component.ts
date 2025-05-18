@@ -32,7 +32,6 @@ import { HeroeEditComponent } from '../heroe-edit/heroe-edit.component';
     IonButtons,
     IonContent,
     IonHeader,
-    IonInput,
     IonItem,
     IonModal,
     IonTitle,

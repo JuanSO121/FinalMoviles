@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      Tab 1
+      Login
     </ion-title>
   </ion-toolbar>
 </ion-header>
@@ -9,9 +9,26 @@
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
+      <ion-title size="large">Login</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+  <form #form="ngForm" (ngSubmit)="loadCookie()">
+    <ion-item>
+      <ion-label position="stacked">Usuario</ion-label>
+      <ion-input [(ngModel)]="user" name="user" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Contraseña</ion-label>
+      <ion-input [(ngModel)]="password" name="password" required></ion-input>
+    </ion-item>
+
+    <ion-button expand="full" type="submit" [disabled]="form.invalid">
+      Login
+    </ion-button>
+  </form>
+  <ion-text color="danger" *ngIf="err">
+    <p>{{ err }}</p>
+  </ion-text>
 </ion-content>
