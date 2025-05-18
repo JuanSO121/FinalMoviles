@@ -1,80 +1,119 @@
-<ion-list class="ion-padding-top">
-  <ion-list-header>
-    <ion-label
-      ><strong>{{ titulo }} - {{ subtitulo }}</strong></ion-label
-    >
-
-    <!--
-    <ion-button color="secondary" (click)="crearHeroe()">
-    -->
-
-    <!-- 
-    <ion-button color="secondary" id="open-modal" expand="block">
-    -->
-    <ion-button color="secondary" (click)="crearHeroe()">
-      <ion-icon name="save"></ion-icon>
-      Crear Heroe
-    </ion-button>
-  </ion-list-header>
-
-  @for (heroe of heroes; track heroe; let i = $index) {
-  <ion-item>
-    <ion-avatar slot="start">
-      <img alt="Silhouette of a person's head" [src]="heroe.img" />
-    </ion-avatar>
-    <ion-label (click)="verHeroe(heroe._id)">
-      <strong>{{ heroe._id }}.</strong> {{ heroe.nombre }}
-    </ion-label>
-
-    <ion-buttons>
-      <ion-button (click)="editarHeroe(heroe._id)" aria-label="Favorite">
-        <ion-icon color="primary" name="create"></ion-icon>
+<ion-content>
+  <div class="heroes-container">
+    <!-- Loading indicator -->
+    @if (isLoading) {
+    <div class="loading-container">
+      <ion-spinner name="circles"></ion-spinner>
+      <p>Cargando héroes...</p>
+    </div>
+    }
+    
+    <!-- Error message -->
+    @if (errorMessage) {
+    <div class="error-container">
+      <ion-icon name="alert-circle-outline" color="danger"></ion-icon>
+      <p>{{ errorMessage }}</p>
+      <ion-button (click)="loadHeroes()">Reintentar</ion-button>
+    </div>
+    }
+    
+    <!-- Cabecera con título y botón de creación -->
+    <div class="heroes-header">
+      <div class="header-titles">
+        <h1>{{ titulo }}</h1>
+        <p class="subtitle">{{ subtitulo }}</p>
+      </div>
+          
+      <ion-button color="primary" (click)="crearHeroe()" class="create-button" shape="round">
+        <ion-icon name="add" slot="start"></ion-icon>
+        Nuevo Héroe
       </ion-button>
+    </div>
+    
+    <!-- Lista de héroes -->
+    <div class="heroes-list-container">
+      @for (heroe of heroes; track heroe._id || $index; let i = $index) {
+      <ion-card class="hero-card" (click)="verHeroe(heroe._id)">
+        <div class="hero-content">
+          <ion-avatar class="hero-avatar">
+            <img [src]="getHeroMainImage(heroe)" alt="Imagen de {{ heroe.nombre }}" />
+          </ion-avatar>
+                  
+          <div class="hero-info">
+            <h2 class="hero-name">{{ heroe.nombre }}</h2>
+            <p class="hero-house {{ heroe.casa}}">{{ heroe.casa }}</p>
+            <p class="hero-date">{{ heroe.aparicion | date:'dd/MM/yyyy' }}</p>
+          </div>
+                  
+          <div class="hero-actions">
+            <ion-button fill="clear" (click)="editarHeroe(heroe._id); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="create-outline" color="primary"></ion-icon>
+            </ion-button>
+                      
+            <ion-button fill="clear" (click)="mostrarConfirmacionEliminar(heroe); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="trash-outline" color="danger"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ion-card>
+      }
+      
+      <!-- Estado vacío (solo se muestra cuando no hay héroes y no está cargando) -->
+      @if (heroes.length === 0 && !isLoading && !errorMessage) {
+      <div class="empty-state">
+        <ion-icon name="sad-outline" class="empty-icon"></ion-icon>
+        <h2>No hay héroes disponibles</h2>
+        <p>Crea un nuevo héroe para comenzar</p>
+        <ion-button color="primary" (click)="crearHeroe()">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Crear mi primer héroe
+        </ion-button>
+      </div>
+      }
+    </div>
+    
+    <!-- Botón flotante para crear héroe (solo visible en móvil) -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-mobile">
+      <ion-fab-button (click)="crearHeroe()">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  </div>
+</ion-content>
 
-      <ion-button (click)="eliminarHeroe(heroe)" aria-label="Favorite">
-        <ion-icon color="danger" name="trash"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-item>
-  }
-</ion-list>
-
-<!--
-<ion-modal trigger="open-modal" (click)="crearHeroe" (willDismiss)="onWillDismiss($event)">
--->
-
-
-<ion-modal [isOpen]="isModalOpen">
+<!-- Modal para crear/editar héroe -->
+<ion-modal [isOpen]="isModalOpen" [backdropDismiss]="false" [initialBreakpoint]="0.95" [breakpoints]="[0, 0.95]" class="hero-modal">
   <ng-template>
-    <ion-header>
+    <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button (click)="cancel()">Cancel</ion-button>
+          <ion-button (click)="cancel()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
         </ion-buttons>
-        <ion-title>Welcome</ion-title>
+        <ion-title>
+          @if (accion === 'visualizar') {
+            Detalles del Héroe
+          } @else if (accion === 'editar') {
+            Editar Héroe
+          } @else {
+            Nuevo Héroe
+          }
+        </ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="confirm()" [strong]="true">Confirm</ion-button>
+          @if (accion !== 'visualizar') {
+          <ion-button (click)="confirm()" [strong]="true" color="primary">Guardar</ion-button>
+          }
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="ion-padding">
+      
+    <ion-content class="modal-content">
       <app-heroe-edit
         [heroe]="heroe"
         [accion]="accion"
         (heroeCambiado)="recargarHeroesModal($event)"
       ></app-heroe-edit>
-
-      <!--
-      <ion-item>
-        <ion-input
-          label="Enter your name"
-          labelPlacement="stacked"
-          type="text"
-          placeholder="Your name"
-          [(ngModel)]="name"
-        ></ion-input>
-      </ion-item>
-      -->
     </ion-content>
   </ng-template>
 </ion-modal>
