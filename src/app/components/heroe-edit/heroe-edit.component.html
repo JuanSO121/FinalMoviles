@@ -1,0 +1,62 @@
+@if (heroe) {
+
+  @if (accion === 'visualizar') {
+  <ion-card>
+    <img alt="Foto del Heroe" src="{{ heroe.img }}" />
+    <ion-card-header>
+      <ion-card-title>{{ heroe.nombre }}</ion-card-title>
+      <ion-card-subtitle><strong>Detalles</strong></ion-card-subtitle>
+    </ion-card-header>
+  
+    <ion-card-content> <strong>Bio:</strong> {{ heroe.bio }} </ion-card-content>
+    <ion-card-content> <strong>Casa:</strong>{{ heroe.casa }} </ion-card-content>
+  </ion-card>
+  }
+  
+  @if (accion !== 'visualizar') {
+  
+  <form #form="ngForm" (ngSubmit)="guardar()">
+    <ion-item>
+      <ion-label position="stacked">ID</ion-label>
+      <ion-input [(ngModel)]="heroe._id" name="_id" disabled></ion-input>
+    </ion-item>
+  
+    <ion-item>
+      <ion-label position="stacked">Nombre</ion-label>
+      <ion-input [(ngModel)]="heroe.nombre" name="nombre" required></ion-input>
+    </ion-item>
+  
+    <ion-item>
+      <ion-label position="stacked">Bio</ion-label>
+      <ion-textarea [(ngModel)]="heroe.bio" name="bio" required ></ion-textarea>
+    </ion-item>
+  
+    <ion-item>
+      <ion-label position="stacked">Imagen URL</ion-label>
+      <ion-input [(ngModel)]="heroe.img" name="img" required></ion-input>
+      <ion-thumbnail slot="start">
+        <ion-img alt="Imagen del heroe" src="{{ heroe.img }}" />
+      </ion-thumbnail>
+  
+    </ion-item>
+  
+    <ion-item>
+      <ion-label position="stacked">Aparición</ion-label>
+      <ion-input  [(ngModel)]="heroe.aparicion" name="aparicion"></ion-input>
+    </ion-item>
+  
+    <ion-item>
+      <ion-label position="stacked">Casa</ion-label>
+      <ion-select [(ngModel)]="heroe.casa" name="casa">
+        <ion-select-option value="Marvel">Marvel</ion-select-option>
+        <ion-select-option value="DC">DC</ion-select-option>
+        <ion-select-option value="Otro">Otro</ion-select-option>
+      </ion-select>
+    </ion-item>
+  
+    <ion-button expand="full" type="submit" [disabled]="form.invalid">
+      Guardar Heroe
+    </ion-button>
+  </form>
+  }
+  }
