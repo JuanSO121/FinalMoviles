@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'appCrud',
+  appId: 'com.TobeHero.miapp',
+  appName: 'ToBeHero',
   webDir: 'www'
 };
 

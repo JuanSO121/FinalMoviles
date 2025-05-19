@@ -1,3 +1,15 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>{{ titulo }}</ion-title>
+    <!-- Botón de cerrar sesión cuando está autenticado -->
+    <ion-buttons slot="end" *ngIf="isAuthenticated">
+      <ion-button (click)="logout()">
+        <ion-icon slot="icon-only" name="logOutOutline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
 <ion-content>
   <div class="heroes-container">
     <!-- Loading indicator -->
@@ -11,7 +23,7 @@
     <!-- Error message -->
     @if (errorMessage) {
     <div class="error-container">
-      <ion-icon name="alert-circle-outline" color="danger"></ion-icon>
+      <ion-icon name="alertCircleOutline" color="danger"></ion-icon>
       <p>{{ errorMessage }}</p>
       <ion-button (click)="loadHeroes()">Reintentar</ion-button>
     </div>
@@ -47,11 +59,11 @@
                   
           <div class="hero-actions">
             <ion-button fill="clear" (click)="editarHeroe(heroe._id); $event.stopPropagation()">
-              <ion-icon slot="icon-only" name="create-outline" color="primary"></ion-icon>
+              <ion-icon slot="icon-only" name="createOutline" color="primary"></ion-icon>
             </ion-button>
                       
             <ion-button fill="clear" (click)="mostrarConfirmacionEliminar(heroe); $event.stopPropagation()">
-              <ion-icon slot="icon-only" name="trash-outline" color="danger"></ion-icon>
+              <ion-icon slot="icon-only" name="trashOutline" color="danger"></ion-icon>
             </ion-button>
           </div>
         </div>
@@ -61,7 +73,7 @@
       <!-- Estado vacío (solo se muestra cuando no hay héroes y no está cargando) -->
       @if (heroes.length === 0 && !isLoading && !errorMessage) {
       <div class="empty-state">
-        <ion-icon name="sad-outline" class="empty-icon"></ion-icon>
+        <ion-icon name="sadOutline" class="empty-icon"></ion-icon>
         <h2>No hay héroes disponibles</h2>
         <p>Crea un nuevo héroe para comenzar</p>
         <ion-button color="primary" (click)="crearHeroe()">
@@ -70,15 +82,35 @@
         </ion-button>
       </div>
       }
+      
+      <!-- Notificación cuando no está autenticado -->
+      @if (!isAuthenticated && !isLoading) {
+      <div class="auth-notification">
+        <ion-icon name="alertCircleOutline"></ion-icon>
+        <p>Necesitas iniciar sesión para crear, editar o eliminar héroes</p>
+        <ion-button color="primary" routerLink="/tabs/login">
+          Iniciar sesión
+        </ion-button>
+      </div>
+      }
     </div>
     
-    <!-- Botón flotante para crear héroe (solo visible en móvil) -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-mobile">
+    <!-- Botón flotante para crear héroe (solo visible en móvil y cuando está autenticado) -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-mobile" *ngIf="isAuthenticated">
       <ion-fab-button (click)="crearHeroe()">
         <ion-icon name="add"></ion-icon>
       </ion-fab-button>
     </ion-fab>
   </div>
+  
+  <!-- Toast para mensajes -->
+  <ion-toast
+    [isOpen]="isToastOpen"
+    [message]="toastMessage"
+    [duration]="3000"
+    [position]="'bottom'"
+    (didDismiss)="setToastOpen(false)"
+  ></ion-toast>
 </ion-content>
 
 <!-- Modal para crear/editar héroe -->
@@ -88,7 +120,7 @@
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-button (click)="cancel()">
-            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            <ion-icon slot="icon-only" name="closeOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
         <ion-title>
@@ -117,3 +149,4 @@
     </ion-content>
   </ng-template>
 </ion-modal>
+

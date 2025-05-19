@@ -1,136 +1,73 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar color="primary">
-    <ion-title>
-      Galería de Héroes
-    </ion-title>
+    <ion-title>Galería de Imágenes</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Galería de Héroes</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Gestión de Imágenes</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Seleccionar Héroe</ion-label>
+        <ion-select placeholder="Seleccione un héroe" (ionChange)="heroSelected($event)">
+          <ion-select-option *ngFor="let hero of heroes" [value]="hero._id">
+            {{ hero.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
 
-  <!-- Mensaje de error -->
-  <div *ngIf="errorMessage" class="error-container">
-    <p>{{ errorMessage }}</p>
-    <ion-button (click)="loadHeroes()">Reintentar</ion-button>
-  </div>
+      @if (selectedHero) {
+        <div class="ion-padding-top">
+          <ion-button expand="block" color="success" (click)="showAddImagePrompt()">
+            <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+            Agregar Imagen
+          </ion-button>
+        </div>
+      }
+    </ion-card-content>
+  </ion-card>
 
-  <!-- Contenedor principal -->
-  <div class="container">
-    <!-- Lista de héroes -->
-    <ion-card *ngIf="!selectedHero">
+  @if (selectedHero && heroImages.length > 0) {
+    <ion-card>
       <ion-card-header>
-        <ion-card-title>Selecciona un héroe</ion-card-title>
-        <ion-card-subtitle>Para gestionar sus imágenes</ion-card-subtitle>
+        <ion-card-title>Imágenes de {{ selectedHero.nombre }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
-        <ion-list *ngIf="heroes && heroes.length > 0; else noHeroes">
-          <ion-item *ngFor="let hero of heroes" button (click)="selectHero(hero)">
-            <ion-thumbnail slot="start">
-              <ion-img [src]="typeof hero.img === 'string' ? hero.img : hero.img && hero.img.length > 0 ? hero.img[0] : 'assets/img/no-image.png'"></ion-img>
-            </ion-thumbnail>
-            <ion-label>
-              <h2>{{ hero.nombre }}</h2>
-              <p>{{ hero.casa }}</p>
-              <small>{{ getImageCount(hero) }} imágenes</small>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-        
-        <ng-template #noHeroes>
-          <div class="no-heroes">
-            <p>No hay héroes disponibles.</p>
-            <ion-button (click)="loadHeroes()">Actualizar</ion-button>
-          </div>
-        </ng-template>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Gestión de imágenes para el héroe seleccionado -->
-    <div *ngIf="selectedHero" class="hero-images-container">
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>
-            <div class="title-container">
-              <span>{{ selectedHero.nombre }}</span>
-              <ion-button fill="clear" (click)="clearSelection()">
-                <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-            </div>
-          </ion-card-title>
-          <ion-card-subtitle>Galería de imágenes ({{ heroImages.length }})</ion-card-subtitle>
-        </ion-card-header>
-        
-        <ion-card-content>
-          <!-- Agregar nueva imagen -->
-          <div class="add-image-container">
-            <ion-item>
-              <ion-label position="floating">URL de la imagen</ion-label>
-              <ion-input 
-                [(ngModel)]="newImageUrl" 
-                type="url" 
-                placeholder="https://ejemplo.com/imagen.jpg">
-              </ion-input>
-            </ion-item>
-
-            <ion-button 
-              expand="block" 
-              (click)="addImage()" 
-              [disabled]="!newImageUrl || !isValidImageUrl(newImageUrl)"
-              class="add-btn">
-              <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-              Agregar imagen
-            </ion-button>
-          </div>
-
-          <!-- Grid de imágenes -->
-          <ion-grid>
-            <ion-row>
-              <ion-col 
-                size="6" 
-                size-md="4" 
-                size-lg="3" 
-                *ngFor="let image of heroImages; let i = index">
+        <ion-grid>
+          <ion-row>
+            @for (imageUrl of heroImages; track $index) {
+              <ion-col size="6" size-md="4" size-lg="3" class="ion-margin-bottom">
                 <div class="image-container">
-                  <ion-img 
-                    [src]="image" 
-                    alt="Imagen de héroe"
-                    (click)="showImageOptions(image, i)">
-                  </ion-img>
-                  
+                  <img [src]="imageUrl" (error)="handleImageError($event)" alt="Imagen de héroe" class="hero-img">
                   <div class="image-actions">
-                    <ion-button 
-                      fill="clear" 
-                      color="light"
-                      size="small"
-                      (click)="viewImage(image)">
-                      <ion-icon name="image-outline" slot="icon-only"></ion-icon>
-                    </ion-button>
-                    
-                    <ion-button 
-                      fill="clear" 
-                      color="danger"
-                      size="small"
-                      (click)="confirmDeleteImage(i)">
-                      <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                    <ion-button fill="clear" color="danger" (click)="deleteImage($index)">
+                      <ion-icon name="trash-outline"></ion-icon>
                     </ion-button>
                   </div>
                 </div>
               </ion-col>
-            </ion-row>
-          </ion-grid>
+            }
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+  } @else if (selectedHero) {
+    <ion-card>
+      <ion-card-content class="ion-text-center ion-padding">
+        <ion-icon name="image-outline" size="large" color="medium"></ion-icon>
+        <p>Este héroe no tiene imágenes.</p>
+      </ion-card-content>
+    </ion-card>
+  }
 
-          <!-- Mensaje si no hay imágenes -->
-          <div *ngIf="heroImages.length === 0" class="no-images">
-            <ion-icon name="image-outline" size="large"></ion-icon>
-            <p>Este héroe no tiene imágenes</p>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    </div>
-  </div>
+  @if (!selectedHero) {
+    <ion-card>
+      <ion-card-content class="ion-text-center ion-padding">
+        <p>Selecciona un héroe para ver o administrar sus imágenes.</p>
+      </ion-card-content>
+    </ion-card>
+  }
 </ion-content>

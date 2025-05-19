@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output, ViewChild, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Heroe } from 'src/app/interfaces/heroes.interface';
-import { IonAvatar, IonItem, IonLabel, IonList, IonListHeader, IonButtons, IonIcon, IonButton, IonContent, IonHeader, IonInput, IonModal, IonTitle, IonToolbar, IonCard, IonAlert, IonFab, IonFabButton, IonSpinner } from "@ionic/angular/standalone";
-import { create, heart, heartOutline, save, trash, add, createOutline, trashOutline, sadOutline, closeOutline, alertCircleOutline } from 'ionicons/icons';
+import { IonAvatar, IonItem, IonLabel, IonList, IonListHeader, IonButtons, IonIcon, IonButton, IonContent, IonHeader, IonInput, IonModal, IonTitle, IonToolbar, IonCard, IonAlert, IonFab, IonFabButton, IonSpinner, IonToast } from "@ionic/angular/standalone";
+import { create, heart, heartOutline, save, trash, add, createOutline, trashOutline, sadOutline, closeOutline, alertCircleOutline, logOutOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
 import { Router } from '@angular/router';
 import { HeroesBDService } from 'src/app/services/heroes-bd.service';
@@ -13,6 +13,8 @@ import { OverlayEventDetail } from '@ionic/core/components';
 import { FormsModule } from '@angular/forms';
 import { HeroeEditComponent } from '../heroe-edit/heroe-edit.component';
 import { CommonModule } from '@angular/common';
+import { StorageService } from 'src/app/services/storage.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-heroes-list',
@@ -41,6 +43,7 @@ import { CommonModule } from '@angular/common';
     IonTitle,
     IonToolbar,
     IonSpinner,
+    IonToast,
     HeroeEditComponent
   ],
   standalone: true,
@@ -58,6 +61,12 @@ export class HeroesListComponent implements OnInit {
   unResultado: any;
   isLoading: boolean = false;
   errorMessage: string = '';
+  isAuthenticated: boolean = false;
+  isToastOpen: boolean = false;
+  toastMessage: string = '';
+  
+  // Suscripción para escuchar cambios en el token
+  private tokenSubscription: Subscription | null = null;
 
   @ViewChild(IonModal) modal!: IonModal;
 
@@ -80,35 +89,73 @@ export class HeroesListComponent implements OnInit {
     private router: Router,
     private bd: HeroesBDService,
     private toastController: ToastController,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private storageService: StorageService
   ) {
-    addIcons({alertCircleOutline,add,createOutline,trashOutline,sadOutline,closeOutline,heart,heartOutline,trash,create,save});
+    addIcons({alertCircleOutline, add, createOutline, trashOutline, sadOutline, closeOutline, heart, heartOutline, trash, create, save, logOutOutline});
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Inicializar validación de autenticación
+    await this.checkAuthentication();
+    
+    // Suscribirse a cambios en el token
+    this.listenForAuthChanges();
+    
     // Load heroes if none are provided via @Input
     if (this.heroes.length === 0) {
       this.loadHeroes();
     }
   }
 
-  async loadHeroes() {
-    try {
-      this.isLoading = true;
-      this.errorMessage = '';
-      const data: any = await this.bd.getHeroes().toPromise();
-      if (data && data.resp) {
-        this.heroes = data.resp;
-      } else {
-        throw new Error('No se recibieron datos válidos');
-      }
-    } catch (error) {
-      console.error('Error loading heroes:', error);
-      this.errorMessage = 'Error al cargar los héroes';
-      this.presentAlert('Error', 'Error al cargar héroes', 'No se pudieron cargar los héroes. Inténtalo de nuevo más tarde.');
-    } finally {
-      this.isLoading = false;
+  ngOnDestroy() {
+    // Limpiar suscripciones
+    if (this.tokenSubscription) {
+      this.tokenSubscription.unsubscribe();
     }
+  }
+
+  // Método para verificar la autenticación
+  private async checkAuthentication() {
+    try {
+      this.isAuthenticated = await this.bd.isAuthenticated();
+      console.log('Estado de autenticación:', this.isAuthenticated);
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
+      this.isAuthenticated = false;
+    }
+  }
+
+  // Escuchar cambios en la autenticación
+  private listenForAuthChanges() {
+    this.tokenSubscription = this.storageService.getTokenObservable().subscribe(
+      token => {
+        this.isAuthenticated = !!token;
+        console.log('Cambio en estado de autenticación:', this.isAuthenticated);
+      }
+    );
+  }
+
+  loadHeroes() {
+    this.isLoading = true;
+    this.errorMessage = '';
+    
+    this.bd.getHeroes().subscribe({
+      next: (data: any) => {
+        if (data && data.resp) {
+          this.heroes = data.resp;
+        } else {
+          this.errorMessage = 'No se recibieron datos válidos';
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading heroes:', error);
+        this.errorMessage = 'Error al cargar los héroes';
+        this.presentAlert('Error', 'Error al cargar héroes', 'No se pudieron cargar los héroes. Inténtalo de nuevo más tarde.');
+        this.isLoading = false;
+      }
+    });
   }
 
   // Helper method to get the first image from the hero
@@ -135,6 +182,13 @@ export class HeroesListComponent implements OnInit {
   async editarHeroe(unIdHeroe: string | undefined) {
     if (!unIdHeroe) return;
     
+    // Verificar autenticación antes de permitir editar
+    if (!this.isAuthenticated) {
+      this.showToast('Debes iniciar sesión para editar héroes');
+      this.router.navigate(['/tabs/login']);
+      return;
+    }
+    
     console.log('HEROE', unIdHeroe);
     this.id = unIdHeroe;
     this.accion = 'editar';
@@ -144,6 +198,13 @@ export class HeroesListComponent implements OnInit {
   }
 
   crearHeroe() {
+    // Verificar autenticación antes de permitir crear
+    if (!this.isAuthenticated) {
+      this.showToast('Debes iniciar sesión para crear héroes');
+      this.router.navigate(['/tabs/login']);
+      return;
+    }
+    
     this.id = '';
     this.accion = 'crear';
 
@@ -180,6 +241,13 @@ export class HeroesListComponent implements OnInit {
   }
 
   async eliminarHeroe(unHeroe: Heroe) {
+    // Verificar autenticación antes de permitir eliminar
+    if (!this.isAuthenticated) {
+      this.showToast('Debes iniciar sesión para eliminar héroes');
+      this.router.navigate(['/tabs/login']);
+      return;
+    }
+    
     try {
       if (!unHeroe._id) {
         this.presentAlert('Error!', 'Eliminando Héroe', 'No se puede eliminar un héroe sin ID');
@@ -187,50 +255,71 @@ export class HeroesListComponent implements OnInit {
       }
       
       console.log('Eliminando héroe:', unHeroe);
-      const res: any = await this.bd.crud_Heroes(unHeroe, 'eliminar').toPromise();
-      
-      if (res && res.Ok === true) {
-        this.presentToast('top', 'Héroe eliminado correctamente');
-        this.showDeleteConfirm = false;
-        this.heroeBorrado.emit(unHeroe._id);
-        
-        // Refresh heroes list
-        await this.loadHeroes();
-      } else {
-        console.error('Error al eliminar:', res);
-        this.presentAlert('Error!', 'Eliminando Héroe', res?.msg || 'Error desconocido');
-      }
-    } catch (error) {
-      console.error('Error eliminar héroe:', error);
+      this.bd.crud_Heroes(unHeroe, 'eliminar').subscribe({
+        next: (res: any) => {
+          if (res && res.Ok === true) {
+            this.presentToast('top', 'Héroe eliminado correctamente');
+            this.showDeleteConfirm = false;
+            this.heroeBorrado.emit(unHeroe._id);
+            
+            // Refresh heroes list
+            this.loadHeroes();
+          } else {
+            console.error('Error al eliminar:', res);
+            this.presentAlert('Error!', 'Eliminando Héroe', res?.msg || 'Error desconocido');
+          }
+        },
+        error: (error: any) => {
+          console.error('Error eliminar héroe:', error);
+          
+          // Si es error de autenticación, redirigir al login
+          if (error.status === 401) {
+            this.showToast('Tu sesión ha expirado, inicia sesión nuevamente');
+            this.handleAuthError();
+            return;
+          }
+          
+          this.presentAlert('Error!', 'Eliminando Héroe', 'Error al eliminar: ' + (error.message || 'Error desconocido'));
+        }
+      });
+    } catch (error: any) {
+      console.error('Error general:', error);
       this.presentAlert('Error!', 'Eliminando Héroe', 'Error Desconocido...');
     }
   }
 
-  async cargarUnHeroe() {
-    try {
-      if (!this.id) {
-        throw new Error('ID no válido');
-      }
-      
-      const data: any = await this.bd.getUnHeroe(this.id).toPromise();
-      if (data && data.resp) {
-        this.heroe = data.resp;
-        
-        // Ensure img is always an array
-        if (typeof this.heroe.img === 'string') {
-          this.heroe.img = [this.heroe.img];
-        } else if (!Array.isArray(this.heroe.img)) {
-          this.heroe.img = [];
-        }
-        
-        console.log("MIHeroePAGE", this.heroe);
-      } else {
-        throw new Error('No se pudo cargar el héroe');
-      }
-    } catch (error) {
-      console.error('Error al cargar héroe:', error);
-      this.presentAlert('Error', 'Cargando Héroe', 'No se pudo cargar la información del héroe.');
+  cargarUnHeroe() {
+    if (!this.id) {
+      this.presentAlert('Error', 'Cargando Héroe', 'ID no válido');
+      return;
     }
+    
+    this.isLoading = true;
+    
+    this.bd.getUnHeroe(this.id).subscribe({
+      next: (data: any) => {
+        if (data && data.resp) {
+          this.heroe = data.resp;
+          
+          // Ensure img is always an array
+          if (typeof this.heroe.img === 'string') {
+            this.heroe.img = [this.heroe.img];
+          } else if (!Array.isArray(this.heroe.img)) {
+            this.heroe.img = [];
+          }
+          
+          console.log("MIHeroePAGE", this.heroe);
+        } else {
+          this.presentAlert('Error', 'Cargando Héroe', 'No se pudo cargar la información del héroe.');
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar héroe:', error);
+        this.presentAlert('Error', 'Cargando Héroe', 'No se pudo cargar la información del héroe.');
+        this.isLoading = false;
+      }
+    });
   }
 
   cancel() {
@@ -253,6 +342,13 @@ export class HeroesListComponent implements OnInit {
 
   mostrarConfirmacionEliminar(heroe: Heroe) {
     if (!heroe) return;
+    
+    // Verificar autenticación antes de permitir eliminar
+    if (!this.isAuthenticated) {
+      this.showToast('Debes iniciar sesión para eliminar héroes');
+      this.router.navigate(['/tabs/login']);
+      return;
+    }
     
     this.heroeAEliminar = heroe;
     this.showDeleteConfirm = true;
@@ -295,5 +391,28 @@ export class HeroesListComponent implements OnInit {
 
   setOpen(isOpen: boolean) {
     this.isModalOpen = isOpen;
+  }
+  
+  async logout() {
+    await this.bd.logout();
+    this.isAuthenticated = false;
+    this.showToast('Sesión cerrada correctamente');
+    this.router.navigate(['/tabs/login']);
+  }
+  
+  showToast(message: string) {
+    this.toastMessage = message;
+    this.isToastOpen = true;
+  }
+
+  setToastOpen(isOpen: boolean) {
+    this.isToastOpen = isOpen;
+  }
+
+  // Método para manejar error de autenticación
+  private async handleAuthError() {
+    await this.storageService.removeCookie();
+    this.isAuthenticated = false;
+    this.router.navigate(['/tabs/login']);
   }
 }

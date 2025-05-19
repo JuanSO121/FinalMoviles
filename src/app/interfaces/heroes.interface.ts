@@ -1,10 +1,11 @@
+
 export interface Heroe {
+  _id?: string;
   nombre: string;
   bio: string;
-  img: string[] | string;
   aparicion: string;
   casa: string;
-  _id?: string; // Marcado como opcional con el símbolo ?
+  img: string[] | string;
 }
 
 
