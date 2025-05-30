@@ -16,8 +16,16 @@ export const routes: Routes = [
     loadChildren: () => import('./tabs/tabs.routes').then(m => m.routes),
     // canActivate: [AuthGuard]
   },
+    {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register.page').then(m => m.RegisterPage)
+  },
   {
     path: '**',
     redirectTo: 'login'
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register.page').then( m => m.RegisterPage)
   }
 ];

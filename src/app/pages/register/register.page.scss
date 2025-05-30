@@ -1,4 +1,4 @@
-.login-container {
+.register-container {
   max-width: 500px;
   margin: 0 auto;
   display: flex;
@@ -30,11 +30,11 @@
   margin: 15px 0;
 }
 
-.login-button {
+.register-button {
   margin-top: 20px;
 }
 
-.register-link {
+.login-link {
   margin-top: 20px;
   text-align: center;
   display: flex;
@@ -53,7 +53,7 @@ ion-item {
   margin-bottom: 5px;
 }
 
-ion-button.login-button {
+ion-button.register-button {
   --border-radius: 4px;
   height: 44px;
 }

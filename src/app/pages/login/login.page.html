@@ -44,6 +44,12 @@
             <ion-spinner name="crescent" *ngIf="loading"></ion-spinner>
             <span *ngIf="!loading">Iniciar Sesión</span>
           </ion-button>
+          
+          <!-- Register link -->
+          <div class="register-link">
+            <ion-text>¿No tienes cuenta?</ion-text>
+            <ion-button fill="clear" (click)="navigateToRegister()">Regístrate</ion-button>
+          </div>
         </ion-card-content>
       </ion-card>
     </form>

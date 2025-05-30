@@ -17,6 +17,39 @@ export class HeroesBDService {
     private router: Router
   ) { }
 
+/**
+ * Realiza el registro de un nuevo usuario
+ * @param nombre Nombre del usuario
+ * @param correo Correo del usuario
+ * @param password Contraseña del usuario
+ * @returns Observable con la respuesta del servidor
+ */
+register(nombre: string, correo: string, password: string): Observable<any> {
+  const url = `${URL_HEROES}/usuarios`;
+  const body = {
+    nombre,
+    correo,
+    password
+  };
+  
+  return this.http.post(url, body).pipe(
+    tap((response: any) => {
+      console.log('Respuesta de registro recibida:', response);
+      
+      // Si el registro incluye un token, guardarlo inmediatamente
+      if (response && response.token) {
+        // Uso directo del servicio para garantizar que se guarde correctamente
+        this.storageService.setCookie(response.token)
+          .then(() => console.log('Token guardado con éxito durante registro'))
+          .catch(err => console.error('Error al guardar token durante registro:', err));
+      }
+    }),
+    catchError((error) => {
+      console.error('Error en la petición de registro:', error);
+      return this.handleError(error);
+    })
+  );
+}
   /**
    * Obtiene todos los héroes
    * @returns Observable con el listado de héroes
@@ -303,6 +336,11 @@ export class HeroesBDService {
     } else {
       // Error del lado del servidor
       errorMessage = `Código de error: ${error.status}, mensaje: ${error.message}`;
+      
+      // Si el servidor envía un mensaje específico, usarlo
+      if (error.error && error.error.msg) {
+        errorMessage = error.error.msg;
+      }
       
       // Verificar si es un error de autenticación
       if (error.status === 401) {

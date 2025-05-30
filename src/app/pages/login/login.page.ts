@@ -108,4 +108,8 @@ export class LoginPage implements OnInit {
     });
     toast.present();
   }
+
+    navigateToRegister() {
+    this.router.navigate(['/register']);
+  }
 }

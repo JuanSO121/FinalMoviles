@@ -6,13 +6,13 @@ import { catchError, from, of, switchMap } from 'rxjs';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const storageService = inject(StorageService);
   
-  // Verificar si estamos haciendo login (no necesita token)
-  if (req.url.includes('/auth/login')) {
-    console.log('Petición de login, no se requiere token');
+  // Skip adding token for login or registration endpoints
+  if (req.url.includes('/auth/login') || req.url.includes('/usuarios') && req.method === 'POST') {
+    console.log('Petición de login/registro, no se requiere token');
     return next(req);
   }
   
-  // Para todas las demás peticiones, intentar obtener y adjuntar el token
+  // For all other requests, try to get and attach the token
   return from(storageService.getCookie()).pipe(
     switchMap(token => {
       if (token) {
@@ -24,7 +24,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return next(authReq);
       } else {
         console.warn('No hay token disponible para la petición:', req.url);
-        // Si no hay token disponible, intentar recuperarlo una vez más
+        // If no token is available, try to recover it one more time
         return from(storageService.attemptTokenRecovery()).pipe(
           switchMap(recoveredToken => {
             if (recoveredToken) {
@@ -34,12 +34,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               });
               return next(authReq);
             }
-            console.error('No se pudo recuperar un token. Continuando sin autenticación.');
+            // Only log this error for endpoints that should have a token
+            console.log('Continuando sin autenticación para:', req.url);
             return next(req);
           }),
           catchError(error => {
             console.error('Error en el interceptor:', error);
-            // Asegurarnos de que los errores no bloquean la aplicación
+            // Ensure errors don't block the application
             return next(req);
           })
         );
@@ -47,7 +48,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     }),
     catchError(error => {
       console.error('Error crítico en el interceptor:', error);
-      // Si hay cualquier error en el interceptor, dejamos pasar la petición original
+      // If there's any error in the interceptor, let the original request pass
       return next(req);
     })
   );
